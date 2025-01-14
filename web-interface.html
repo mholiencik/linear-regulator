@@ -4,77 +4,214 @@
     <title>Arduino Voltage Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #22c55e;
+            --danger-color: #ef4444;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
         }
-        .voltage-display {
-            font-size: 24px;
-            margin: 20px 0;
+
+        .header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .control-panel {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+
+        .title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
         }
-        .chart-container {
-            height: 400px;
-            margin: 20px 0;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button.power-off {
-            background-color: #ff4444;
+
+        .connect-btn {
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 4px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
         }
-        button.power-on {
-            background-color: #44ff44;
-            color: black;
+
+        .connect-btn:hover {
+            opacity: 0.9;
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--card-background);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .voltage-control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .voltage-input {
+            flex: 1;
+            max-width: 200px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .set-btn {
+            background-color: var(--primary-color);
+            color: white;
             border: none;
-            border-radius: 4px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
         }
-        input[type="number"] {
-            font-size: 16px;
-            padding: 5px;
-            width: 100px;
+
+        .set-btn:hover {
+            opacity: 0.9;
         }
-        .status {
-            font-weight: bold;
-            margin-top: 10px;
+
+        .power-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            width: 120px;
         }
-        .status.on {
-            color: green;
+
+        .power-btn.on {
+            background-color: var(--success-color);
+            color: white;
         }
-        .status.off {
-            color: red;
+
+        .power-btn.off {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.on {
+            background-color: var(--success-color);
+            box-shadow: 0 0 0 4px rgb(34 197 94 / 0.2);
+        }
+
+        .status-dot.off {
+            background-color: var(--danger-color);
+            box-shadow: 0 0 0 4px rgb(239 68 68 / 0.2);
+        }
+
+        .chart-container {
+            background: var(--card-background);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            height: 400px;
         }
     </style>
 </head>
 <body>
-    <h1>Arduino Voltage Control</h1>
-    <div class="control-panel">
-        <div>
-            <label for="voltage">Set Voltage (V):</label>
-            <input type="number" id="voltage" step="0.1" min="0" max="21.78">
-            <button onclick="setVoltage()">Set</button>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Voltage Control System</h1>
+            <button id="connectButton" class="connect-btn">Connect to Arduino</button>
+        </header>
+
+        <div class="grid">
+            <div class="metric-card">
+                <div class="metric-label">Target Voltage</div>
+                <div class="metric-value"><span id="targetVoltage">0.00</span>V</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Measured Voltage</div>
+                <div class="metric-value"><span id="measuredVoltage">0.00</span>V</div>
+            </div>
         </div>
-        <div class="voltage-display">
-            Target Voltage: <span id="targetVoltage">0.00</span>V<br>
-            Measured Voltage: <span id="measuredVoltage">0.00</span>V
+
+        <div class="card">
+            <div class="voltage-control">
+                <input type="number" id="voltage" class="voltage-input" step="0.1" min="0" max="21.78" placeholder="Enter voltage...">
+                <button onclick="setVoltage()" class="set-btn">Set Voltage</button>
+                <button id="powerBtn" onclick="togglePower()" class="power-btn on">Turn OFF</button>
+            </div>
+            <div class="status-indicator">
+                <div id="statusDot" class="status-dot on"></div>
+                <span id="statusText">System Online</span>
+            </div>
         </div>
-        <button id="powerBtn" onclick="togglePower()" class="power-on">Turn OFF</button>
-        <div id="statusText" class="status on">Status: Power ON</div>
-    </div>
-    <div class="chart-container">
-        <canvas id="voltageChart"></canvas>
+
+        <div class="chart-container">
+            <canvas id="voltageChart"></canvas>
+        </div>
     </div>
 
     <script>
@@ -91,23 +228,49 @@
                 datasets: [{
                     label: 'Target Voltage',
                     data: [],
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    tension: 0.4,
+                    fill: true
                 }, {
                     label: 'Measured Voltage',
                     data: [],
-                    borderColor: 'rgb(255, 99, 132)',
-                    tension: 0.1
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: true
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        max: 22
+                        max: 22,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
                     }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
                 }
             }
         });
@@ -119,8 +282,11 @@
                 reader = port.readable.getReader();
                 writer = port.writable.getWriter();
                 readSerial();
+                document.getElementById('connectButton').textContent = 'Connected';
+                document.getElementById('connectButton').style.backgroundColor = '#22c55e';
             } catch (err) {
                 console.error('Error:', err);
+                alert('Failed to connect to Arduino');
             }
         }
 
@@ -149,18 +315,19 @@
 
         function updatePowerUI(isOn) {
             const powerBtn = document.getElementById('powerBtn');
+            const statusDot = document.getElementById('statusDot');
             const statusText = document.getElementById('statusText');
             
             if (isOn) {
                 powerBtn.textContent = 'Turn OFF';
-                powerBtn.className = 'power-on';
-                statusText.textContent = 'Status: Power ON';
-                statusText.className = 'status on';
+                powerBtn.className = 'power-btn on';
+                statusDot.className = 'status-dot on';
+                statusText.textContent = 'System Online';
             } else {
                 powerBtn.textContent = 'Turn ON';
-                powerBtn.className = 'power-off';
-                statusText.textContent = 'Status: Power OFF';
-                statusText.className = 'status off';
+                powerBtn.className = 'power-btn off';
+                statusDot.className = 'status-dot off';
+                statusText.textContent = 'System Offline';
             }
         }
 
@@ -214,13 +381,7 @@
             }
         }
 
-        // Connect when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            const connectButton = document.createElement('button');
-            connectButton.textContent = 'Connect to Arduino';
-            connectButton.onclick = connectSerial;
-            document.body.insertBefore(connectButton, document.body.firstChild);
-        });
+        document.getElementById('connectButton').onclick = connectSerial;
     </script>
 </body>
 </html>
