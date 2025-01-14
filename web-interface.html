@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Arduino Voltage Control</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .voltage-display {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        .control-panel {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            height: 400px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input[type="number"] {
+            font-size: 16px;
+            padding: 5px;
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Arduino Voltage Control</h1>
+    <div class="control-panel">
+        <div>
+            <label for="voltage">Set Voltage (V):</label>
+            <input type="number" id="voltage" step="0.1" min="0" max="21.5">
+            <button onclick="setVoltage()">Set</button>
+        </div>
+        <div class="voltage-display">
+            Target Voltage: <span id="targetVoltage">0.00</span>V<br>
+            Measured Voltage: <span id="measuredVoltage">0.00</span>V
+        </div>
+        <button id="powerBtn" onclick="togglePower()">Turn OFF</button>
+    </div>
+    <div class="chart-container">
+        <canvas id="voltageChart"></canvas>
+    </div>
+
+    <script>
+        let port;
+        let reader;
+        let writer;
+        let powerState = true;
+        
+        const ctx = document.getElementById('voltageChart').getContext('2d');
+        const voltageChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Target Voltage',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }, {
+                    label: 'Measured Voltage',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 22
+                    }
+                }
+            }
+        });
+
+        async function connectSerial() {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+                reader = port.readable.getReader();
+                writer = port.writable.getWriter();
+                readSerial();
+            } catch (err) {
+                console.error('Error:', err);
+            }
+        }
+
+        async function readSerial() {
+            const decoder = new TextDecoder();
+            let buffer = '';
+            
+            while (true) {
+                try {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value);
+                    let newlineIndex;
+                    while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                        const line = buffer.slice(0, newlineIndex);
+                        buffer = buffer.slice(newlineIndex + 1);
+                        processSerialData(line);
+                    }
+                } catch (err) {
+                    console.error('Error reading serial:', err);
+                    break;
+                }
+            }
+        }
+
+        function processSerialData(data) {
+            try {
+                const readings = JSON.parse(data);
+                document.getElementById('targetVoltage').textContent = readings.target.toFixed(2);
+                document.getElementById('measuredVoltage').textContent = readings.measured.toFixed(2);
+                powerState = readings.isOn;
+                document.getElementById('powerBtn').textContent = powerState ? 'Turn OFF' : 'Turn ON';
+                
+                // Update chart
+                const timestamp = new Date().toLocaleTimeString();
+                voltageChart.data.labels.push(timestamp);
+                voltageChart.data.datasets[0].data.push(readings.target);
+                voltageChart.data.datasets[1].data.push(readings.measured);
+                
+                // Keep last 30 readings
+                if (voltageChart.data.labels.length > 30) {
+                    voltageChart.data.labels.shift();
+                    voltageChart.data.datasets[0].data.shift();
+                    voltageChart.data.datasets[1].data.shift();
+                }
+                
+                voltageChart.update();
+            } catch (err) {
+                console.error('Error processing data:', err);
+            }
+        }
+
+        async function setVoltage() {
+            const voltage = document.getElementById('voltage').value;
+            if (voltage >= 0 && voltage <= 21.5) {
+                const command = `SET:${voltage}\n`;
+                const encoder = new TextEncoder();
+                await writer.write(encoder.encode(command));
+            } else {
+                alert('Voltage must be between 0V and 21.5V');
+            }
+        }
+
+        // Connect when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const connectButton = document.createElement('button');
+            connectButton.textContent = 'Connect to Arduino';
+            connectButton.onclick = connectSerial;
+            document.body.insertBefore(connectButton, document.body.firstChild);
+        });
+    </script>
+</body>
+</html>
