@@ -2,7 +2,7 @@
 
 A web-based interface for controlling and monitoring an Arduino-based voltage regulation system. This project combines hardware control through an Arduino with a modern web interface for real-time voltage monitoring and control.
 
-<img src="img/web_interface.png" width="600" alt="Linear voltage regulator web GUI"/>
+<img src="img/web_interface.png" width="1000" alt="Linear voltage regulator web GUI"/>
 
 ## Features
 
