@@ -29,10 +29,32 @@
             font-size: 16px;
             cursor: pointer;
         }
+        button.power-off {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button.power-on {
+            background-color: #44ff44;
+            color: black;
+            border: none;
+            border-radius: 4px;
+        }
         input[type="number"] {
             font-size: 16px;
             padding: 5px;
             width: 100px;
+        }
+        .status {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .status.on {
+            color: green;
+        }
+        .status.off {
+            color: red;
         }
     </style>
 </head>
@@ -41,14 +63,15 @@
     <div class="control-panel">
         <div>
             <label for="voltage">Set Voltage (V):</label>
-            <input type="number" id="voltage" step="0.1" min="0" max="21.5">
+            <input type="number" id="voltage" step="0.1" min="0" max="21.78">
             <button onclick="setVoltage()">Set</button>
         </div>
         <div class="voltage-display">
             Target Voltage: <span id="targetVoltage">0.00</span>V<br>
             Measured Voltage: <span id="measuredVoltage">0.00</span>V
         </div>
-        <button id="powerBtn" onclick="togglePower()">Turn OFF</button>
+        <button id="powerBtn" onclick="togglePower()" class="power-on">Turn OFF</button>
+        <div id="statusText" class="status on">Status: Power ON</div>
     </div>
     <div class="chart-container">
         <canvas id="voltageChart"></canvas>
@@ -124,13 +147,33 @@
             }
         }
 
+        function updatePowerUI(isOn) {
+            const powerBtn = document.getElementById('powerBtn');
+            const statusText = document.getElementById('statusText');
+            
+            if (isOn) {
+                powerBtn.textContent = 'Turn OFF';
+                powerBtn.className = 'power-on';
+                statusText.textContent = 'Status: Power ON';
+                statusText.className = 'status on';
+            } else {
+                powerBtn.textContent = 'Turn ON';
+                powerBtn.className = 'power-off';
+                statusText.textContent = 'Status: Power OFF';
+                statusText.className = 'status off';
+            }
+        }
+
         function processSerialData(data) {
             try {
                 const readings = JSON.parse(data);
                 document.getElementById('targetVoltage').textContent = readings.target.toFixed(2);
                 document.getElementById('measuredVoltage').textContent = readings.measured.toFixed(2);
-                powerState = readings.isOn;
-                document.getElementById('powerBtn').textContent = powerState ? 'Turn OFF' : 'Turn ON';
+                
+                if (powerState !== readings.isOn) {
+                    powerState = readings.isOn;
+                    updatePowerUI(powerState);
+                }
                 
                 // Update chart
                 const timestamp = new Date().toLocaleTimeString();
@@ -153,12 +196,21 @@
 
         async function setVoltage() {
             const voltage = document.getElementById('voltage').value;
-            if (voltage >= 0 && voltage <= 21.5) {
+            if (voltage >= 0 && voltage <= 21.78) {
                 const command = `SET:${voltage}\n`;
                 const encoder = new TextEncoder();
                 await writer.write(encoder.encode(command));
             } else {
-                alert('Voltage must be between 0V and 21.5V');
+                alert('Voltage must be between 0V and 21.78V');
+            }
+        }
+
+        async function togglePower() {
+            try {
+                const encoder = new TextEncoder();
+                await writer.write(encoder.encode('POWER:TOGGLE\n'));
+            } catch (err) {
+                console.error('Error toggling power:', err);
             }
         }
 

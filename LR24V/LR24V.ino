@@ -53,11 +53,16 @@ void loop() {
       if (value > 1023) value = 1023;
       if (value < 0) value = 0;
       
+    
+      targetVoltage = requestedVoltage;
+      value = (targetVoltage/6.6)*(1023.0/3.3);
+
       if (turnedON) {
         analogWrite(DAC0, value);
       }
-      targetVoltage = requestedVoltage;
-      value = (targetVoltage/6.6)*(1023.0/3.3);
+    }
+    else if (command == "POWER:TOGGLE") {
+      togglePower();
     }
   }
 
@@ -71,19 +76,8 @@ void loop() {
 
 
   int buttonState = digitalRead(PUSHB);
-
-  if (previousPush > buttonState){
-    lcd.setCursor(13, 3);
-    if (turnedON){
-      analogWrite(DAC0, 0.0); // turn off
-      lcd.print("OFF");
-      turnedON = false;
-    } else {
-      analogWrite(DAC0, value); // turn on
-      lcd.print("ON ");
-      turnedON = true;
-    }
-    measureVoltage();
+  if (previousPush > buttonState) {
+    togglePower();
   }
   previousPush = buttonState;
 
@@ -106,6 +100,23 @@ void loop() {
 
     measureVoltage();
   }
+}
+
+void togglePower() {
+  lcd.setCursor(13, 3);
+  if (turnedON) {
+    analogWrite(DAC0, 0); // turn off
+    Serial.println("Power supply turned OFF");
+    lcd.print("OFF");
+    turnedON = false;
+  } else {
+    analogWrite(DAC0, value); // turn on
+    Serial.println("Power supply turned ON");
+    lcd.print("ON ");
+    turnedON = true;
+  }
+  measureVoltage();
+  sendVoltageData(); // Send immediate update after power toggle
 }
 
 void measureVoltage(){
