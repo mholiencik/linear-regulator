@@ -85,13 +85,13 @@ void loop() {
   if(value != lastValue){
     targetVoltage = value * (3.3/1023.0) * 6.6;
 
-    lcd.setCursor(1, 1);
+    lcd.setCursor(0, 1);
 
     lcd.print("S: ");
     lcd.print(targetVoltage);
     lcd.print("V (");
     lcd.print(value);
-    lcd.print(")   ");
+    lcd.print(")    ");
 
     analogWrite(DAC0, value);
     lastValue = value;
@@ -129,13 +129,13 @@ void measureVoltage(){
 
   float a_voltage = sensorValue * (3.3/1023.0) * 6.6; // from 3.3 readings, max 21.78
   measuredVoltage = a_voltage;
-  lcd.setCursor(1, 2);
+  lcd.setCursor(0, 2);
 
   lcd.print("M: ");
   lcd.print(a_voltage);
   lcd.print("V (");
   lcd.print(sensorValue);
-  lcd.print(")   ");
+  lcd.print(")    ");
 }
 
 void sendVoltageData(){
